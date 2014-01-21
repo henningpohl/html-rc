@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>HTML remote controlled</title>
+	<script src="http://code.jquery.com/jquery-2.0.3.min.js"></script>
+	<script src="jquery.animate-colors-min.js"></script>
+	<script src="jquery.animate-shadow-min.js"></script>
+	<script src="jquery.tubeplayer.min.js"></script>
+	<script src="remoteFunctions.js"></script>
+	<script>	
+    $(document).ready(function() {
+		jQuery("#youtube-player-container").tubeplayer({
+			width: $('body').width() - 100, 
+			height: $('body').height() - 100,
+			allowFullScreen: "true",
+			autoPlay: false,
+			showControls: 0,
+			showInfo: false,
+			modestbranding: false,
+			initialVideo: "",
+			preferredQuality: "hd720"
+		});
+					
+		var connection = new WebSocket('ws://localhost:9000');
+		connection.binaryType = "arraybuffer";
+		var messagePattern = /(\w+)(?:\s(.*))?/i;
+		
+		connection.onopen = function() {
+			console.log("Connected to server");
+		};
+		
+		connection.onclose = function() {
+			console.log("Disconnected from server");
+		};
+		
+		connection.onerror = function(error) {
+			console.log("WebSocket Error: " + error);
+		};
+		
+		connection.onmessage = function(e) {
+			if(typeof e.data != "string") {
+				console.log("Unknown websocket message: " + e.data);
+				return;
+			}
+		
+			var match = e.data.match(messagePattern);
+			if(match == null) {
+				console.log("Can't parse message: " + e.data);
+				return;
+			}
+			
+			var cmd = match[1];
+			var args = match[2];
+			
+			if(cmd in remote) {
+				remote[cmd](args);
+			} else {
+				console.log("Unknown command: " + cmd);
+			}
+		};
+    });
+	</script>
+	<link rel="stylesheet" href="style.css">
+</head>
+<body>
+	<div id="videoPanel" class="panel hidden">
+		<div id='youtube-player-container'> </div>
+	</div>
+
+	<div id="glowPanel" class="panel hidden"> </div>
+	
+	<div id="audioPanel" class="panel hidden">
+		<div class="canvasContainer"></div>
+		<audio style="width:500px;" id="audioPlayer" controls="controls" />
+	</div>
+	
+</body>
+</html>
